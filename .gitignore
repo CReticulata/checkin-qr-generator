@@ -39,5 +39,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# sensitive data - participant CSV files
-src/data/
+# Note: src/data/ is no longer used
+# CSV files are now stored in Vercel Blob Storage

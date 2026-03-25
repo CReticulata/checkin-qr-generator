@@ -127,21 +127,25 @@ npm start
 
 ## CSV 檔案管理
 
+### 上傳參加者資料
+
+參加者資料透過管理員介面上傳，儲存於 Vercel Blob Storage：
+
+1. 以管理員帳號登入後，前往 `/admin` 頁面
+2. 將 CSV 檔案拖放到上傳區域，或點擊選擇檔案
+3. 點擊「上傳 CSV」按鈕
+4. 上傳成功後立即生效，無需重新部署
+
+**管理員設定：** 在環境變數 `ADMIN_EMAILS` 中加入管理員的 email（多個用逗號分隔）
+
 ### 更新參加者資料
 
-1. 用更新後的檔案取代 `src/data/participants.csv`
-2. 重新啟動應用程式以重新載入資料：
-   ```bash
-   # 停止伺服器（Ctrl+C）
-   npm run dev  # 或正式環境使用 npm start
-   ```
-
-**注意：** CSV 檔案在應用程式啟動時會載入至記憶體，以達到最佳效能（O(1) 查詢）。
+直接在 `/admin` 頁面上傳新的 CSV 檔案即可覆蓋舊資料，無需重新部署應用程式。
 
 ### CSV 安全性
 
-- CSV 檔案儲存在 `src/data/`（不是 `public/`）
-- 檔案已加入 `.gitignore` 避免提交敏感資料
+- CSV 檔案儲存在 Vercel Blob Storage（非公開目錄）
+- 僅管理員可以上傳和更新資料
 - 資料僅在伺服器端存取
 - 不會將參加者資訊暴露給客戶端
 
@@ -149,23 +153,28 @@ npm start
 
 ```
 ├── app/
-│   ├── api/auth/[...nextauth]/
-│   │   └── route.ts              # NextAuth.js 設定
+│   ├── api/
+│   │   ├── auth/[...nextauth]/
+│   │   │   └── route.ts          # NextAuth.js 設定
+│   │   └── admin/upload-csv/
+│   │       └── route.ts          # CSV 上傳 API
+│   ├── admin/
+│   │   ├── page.tsx              # 管理員上傳頁面
+│   │   ├── AdminUploadForm.tsx   # 上傳表單元件
+│   │   └── SampleCsvDownload.tsx # 範例 CSV 下載元件
 │   ├── dashboard/
 │   │   ├── page.tsx              # QR Code 顯示頁面（伺服器元件）
-│   │   └── LogoutButton.tsx     # 登出按鈕客戶端元件
+│   │   └── LogoutButton.tsx      # 登出按鈕客戶端元件
 │   ├── error/
 │   │   └── page.tsx              # 未註冊使用者的錯誤頁面
 │   ├── page.tsx                  # 登入頁面
 │   ├── layout.tsx                # 根佈局
 │   └── globals.css               # 全域樣式
-├── src/
-│   ├── lib/
-│   │   ├── csvLoader.ts          # CSV 解析與參加者查詢
-│   │   ├── auth.ts               # 身份驗證工具
-│   │   └── qrGenerator.ts        # QR Code 生成
-│   └── data/
-│       └── participants.csv      # 參加者報名資料
+├── src/lib/
+│   ├── csvLoader.ts              # CSV 解析與參加者查詢（從 Blob Storage 讀取）
+│   ├── auth.ts                   # 身份驗證工具
+│   ├── admin.ts                  # 管理員權限檢查
+│   └── qrGenerator.ts            # QR Code 生成
 ├── .env.local                    # 環境變數（不納入 git）
 └── .env.example                  # 環境變數範例
 ```
@@ -174,10 +183,10 @@ npm start
 
 ### CSV 載入器 (`src/lib/csvLoader.ts`)
 
-- **初始化**：`initializeParticipantData()` - 在啟動時呼叫
+- **資料來源**：從 Vercel Blob Storage 讀取 `participants.csv`
 - **查詢**：`getTicketNumber(email: string)` - O(1) 電子郵件到票券的查詢
-- **資料結構**：記憶體中的 `Map<string, string>`，鍵值為小寫電子郵件
-- **錯誤處理**：驗證檔案存在性、欄位數量與資料完整性
+- **資料結構**：每次請求從 Blob 讀取並建立 `Map<string, string>`
+- **錯誤處理**：Blob 讀取失敗時回傳空結果，不中斷服務
 
 ### 身份驗證 (`src/lib/auth.ts`)
 
@@ -208,9 +217,9 @@ npm start
 
 ### CSV 格式問題
 
-**問題**：「找不到 participants.csv 檔案」
-- 確保檔案位於 `src/data/participants.csv`（不是 `public/`）
-- 檢查檔案權限
+**問題**：「尚未上傳參與者 CSV 檔案」
+- 前往 `/admin` 頁面上傳 CSV 檔案
+- 確認已設定 `ADMIN_EMAILS` 環境變數
 
 **問題**：「CSV 中沒有找到有效的參加者記錄」
 - 驗證 CSV 有資料列（不只有標頭）
@@ -239,14 +248,19 @@ npm start
 
 1. 將程式碼推送至 GitHub 儲存庫
 2. 在 Vercel 儀表板匯入專案
-3. 在 Vercel 專案設定中新增環境變數：
+3. 啟用 Vercel Blob Storage：
+   - 前往專案設定 > Storage
+   - 點擊「Create Database」> 選擇「Blob」
+   - 建立完成後會自動新增 `BLOB_READ_WRITE_TOKEN` 環境變數
+4. 在 Vercel 專案設定中新增其他環境變數：
    - `GOOGLE_CLIENT_ID`
    - `GOOGLE_CLIENT_SECRET`
    - `NEXTAUTH_SECRET`
    - `NEXTAUTH_URL`（設為正式網域）
    - `EVENT_ID`
-4. 手動上傳 `participants.csv` 或透過部署腳本
+   - `ADMIN_EMAILS`（管理員 email，多個用逗號分隔）
 5. 部署
+6. 前往 `/admin` 頁面上傳參與者 CSV 檔案
 
 **重要**：使用正式環境 URL 更新 Google Cloud Console 的重新導向 URI。
 
