@@ -1,5 +1,6 @@
 import { list } from '@vercel/blob';
 import { parse } from 'csv-parse/sync';
+import { unstable_noStore as noStore } from 'next/cache';
 
 // Type definitions for participant data
 export interface ParticipantRecord {
@@ -7,30 +8,37 @@ export interface ParticipantRecord {
   ticketNumber: string;
 }
 
-// Blob file name for participants CSV
-const PARTICIPANTS_BLOB_NAME = 'participants.csv';
+// Blob file name pattern for participants CSV (timestamped)
+const PARTICIPANTS_BLOB_PREFIX = 'participants-';
 
 /**
  * Fetch and parse CSV from Vercel Blob Storage
  * Returns a Map for O(1) email lookup
  */
 async function fetchParticipantData(): Promise<Map<string, string>> {
+  // Disable Next.js Data Cache to always fetch fresh data
+  noStore();
+
   const participantMap = new Map<string, string>();
 
   try {
-    // List blobs to find participants.csv
+    // List blobs to find the latest participants-*.csv
     const { blobs } = await list();
-    const csvBlob = blobs.find(blob => blob.pathname === PARTICIPANTS_BLOB_NAME);
+    const csvBlobs = blobs
+      .filter(blob => blob.pathname.startsWith(PARTICIPANTS_BLOB_PREFIX) && blob.pathname.endsWith('.csv'))
+      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+
+    const csvBlob = csvBlobs[0]; // Get the most recent one
 
     if (!csvBlob) {
-      console.warn('[CSV Loader] participants.csv not found in Blob Storage');
+      console.warn('[CSV Loader] No participants CSV found in Blob Storage');
       return participantMap;
     }
 
-    // Fetch blob content with token authentication
-    console.log(`[CSV Loader] Fetching CSV from Blob Storage`);
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    console.log(`[CSV Loader] Using CSV: ${csvBlob.pathname} (uploaded: ${csvBlob.uploadedAt})`);
 
+    // Fetch blob content with token authentication
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
     const response = await fetch(csvBlob.url, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -130,9 +138,10 @@ export async function getParticipantCount(): Promise<number> {
  * Check if participants CSV exists in Blob Storage
  */
 export async function hasParticipantsFile(): Promise<boolean> {
+  noStore();
   try {
     const { blobs } = await list();
-    return blobs.some(blob => blob.pathname === PARTICIPANTS_BLOB_NAME);
+    return blobs.some(blob => blob.pathname.startsWith(PARTICIPANTS_BLOB_PREFIX) && blob.pathname.endsWith('.csv'));
   } catch {
     return false;
   }

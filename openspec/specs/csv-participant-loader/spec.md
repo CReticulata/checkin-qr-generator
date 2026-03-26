@@ -1,11 +1,15 @@
-## MODIFIED Requirements
+## Requirements
 
 ### Requirement: System must parse CSV file with correct column mapping
-系統 SHALL 從 Vercel Blob Storage 讀取 participants.csv 檔案，提取 email（第 5 欄，index 4）和票號（第 2 欄，index 1）。
+系統 SHALL 從 Vercel Blob Storage 讀取最新的 `participants-*.csv` 檔案，提取 email（第 5 欄，index 4）和票號（第 2 欄，index 1）。
+
+#### Scenario: Find latest CSV file
+- **WHEN** 系統需要查詢參與者資料
+- **THEN** 系統列出所有 `participants-*.csv` 檔案，按 `uploadedAt` 排序，取最新的一個
 
 #### Scenario: CSV file parsing
-- **WHEN** 系統需要查詢參與者資料
-- **THEN** 系統從 Vercel Blob Storage 讀取 participants.csv 並解析所有資料列
+- **WHEN** 找到最新的 CSV 檔案
+- **THEN** 系統從該檔案讀取並解析所有資料列
 
 #### Scenario: Header row handling
 - **WHEN** 解析 CSV 檔案
@@ -15,9 +19,9 @@
 - **WHEN** 處理每一列 CSV 資料
 - **THEN** 系統從 index 4 提取 email，從 index 1 提取票號
 
-#### Scenario: Blob Storage 讀取失敗
-- **WHEN** 無法從 Vercel Blob Storage 讀取 CSV 檔案
-- **THEN** 系統記錄錯誤並回傳空的參與者清單
+#### Scenario: No CSV file found
+- **WHEN** Blob Storage 中沒有 `participants-*.csv` 檔案
+- **THEN** 系統記錄警告並回傳空的參與者清單
 
 ### Requirement: System must build email-to-ticket lookup map
 系統 SHALL 建立以 email 為鍵、票號為值的 Map 結構，提供 O(1) 查詢效能。
@@ -48,6 +52,17 @@
 #### Scenario: Case-insensitive lookup
 - **WHEN** 使用混合大小寫的 email（例如 User@Example.com）進行查詢
 - **THEN** 系統無視大小寫差異找到匹配記錄
+
+### Requirement: Upload CSV with timestamped filename
+系統 SHALL 使用帶時間戳的檔名上傳 CSV，並先刪除舊檔案。
+
+#### Scenario: Delete old files before upload
+- **WHEN** 管理員上傳新的 CSV 檔案
+- **THEN** 系統先刪除所有現有的 `participants-*.csv` 檔案
+
+#### Scenario: Upload with timestamp
+- **WHEN** 刪除舊檔案完成後
+- **THEN** 系統以 `participants-{timestamp}.csv` 格式上傳新檔案
 
 ## REMOVED Requirements
 
