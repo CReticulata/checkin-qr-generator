@@ -6,6 +6,9 @@ import SampleCsvDownload from "./SampleCsvDownload";
 import AdminLoginButton from "./AdminLoginButton";
 import EventSettingsForm from "./EventSettingsForm";
 
+// Disable page caching to always show fresh data
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   const session = await getSession();
 

@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
       access: 'private',
       contentType: 'text/csv',
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
 
     return NextResponse.json({
