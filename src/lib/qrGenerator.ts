@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { getEventId as getEventIdFromSettings } from './eventSettings';
 
 /**
  * Generate QR code for event check-in
@@ -9,10 +10,10 @@ import QRCode from 'qrcode';
  * @throws Error if EVENT_ID is not configured or QR generation fails
  */
 export async function generateQRCode(ticketNumber: string): Promise<string> {
-  // Validate EVENT_ID environment variable
-  const eventId = process.env.EVENT_ID;
+  // Get EVENT_ID from settings (Blob Storage → Environment Variable)
+  const eventId = await getEventIdFromSettings();
   if (!eventId) {
-    throw new Error('EVENT_ID environment variable is not configured');
+    throw new Error('EVENT_ID is not configured (neither in Blob Storage nor environment variable)');
   }
 
   // Validate ticket number
@@ -52,19 +53,21 @@ export async function generateQRCode(ticketNumber: string): Promise<string> {
 
 /**
  * Validate QR code configuration
- * Checks if EVENT_ID is properly set
+ * Checks if EVENT_ID is properly set (in Blob Storage or environment)
  *
  * @returns true if configuration is valid, false otherwise
  */
-export function validateQRConfig(): boolean {
-  return !!process.env.EVENT_ID;
+export async function validateQRConfig(): Promise<boolean> {
+  const eventId = await getEventIdFromSettings();
+  return !!eventId;
 }
 
 /**
  * Get the current event ID
+ * Priority: Blob Storage → Environment Variable
  *
- * @returns EVENT_ID from environment or null if not configured
+ * @returns EVENT_ID or null if not configured
  */
-export function getEventId(): string | null {
-  return process.env.EVENT_ID || null;
+export async function getEventId(): Promise<string | null> {
+  return getEventIdFromSettings();
 }

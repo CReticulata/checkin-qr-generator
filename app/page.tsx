@@ -2,11 +2,30 @@
 
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 
 function LoginContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  const [eventName, setEventName] = useState("活動報到");
+  const [isLoadingEventName, setIsLoadingEventName] = useState(true);
+
+  useEffect(() => {
+    async function fetchEventName() {
+      try {
+        const response = await fetch("/api/event");
+        const data = await response.json();
+        if (data.eventName) {
+          setEventName(data.eventName);
+        }
+      } catch (error) {
+        console.error("Failed to fetch event name:", error);
+      } finally {
+        setIsLoadingEventName(false);
+      }
+    }
+    fetchEventName();
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
@@ -14,7 +33,11 @@ function LoginContent() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            活動報到
+            {isLoadingEventName ? (
+              <span className="inline-block w-48 h-8 bg-gray-200 rounded animate-pulse"></span>
+            ) : (
+              eventName
+            )}
           </h1>
           <p className="text-gray-600">
             生成您的入場 QR Code

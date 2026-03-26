@@ -4,6 +4,7 @@ import { getParticipantCount, hasParticipantsFile } from "@/src/lib/csvLoader";
 import AdminUploadForm from "./AdminUploadForm";
 import SampleCsvDownload from "./SampleCsvDownload";
 import AdminLoginButton from "./AdminLoginButton";
+import EventSettingsForm from "./EventSettingsForm";
 
 export default async function AdminPage() {
   const session = await getSession();
@@ -72,6 +73,11 @@ export default async function AdminPage() {
             ) : (
               <p className="text-orange-600">⚠ 尚未上傳參與者 CSV 檔案</p>
             )}
+          </div>
+
+          {/* Event Settings */}
+          <div className="mb-8 border-b pb-8">
+            <EventSettingsForm />
           </div>
 
           {/* Upload Form */}

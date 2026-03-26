@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession, getEmailFromSession } from "@/src/lib/auth";
 import { getTicketNumber } from "@/src/lib/csvLoader";
 import { generateQRCode } from "@/src/lib/qrGenerator";
+import { getEventName } from "@/src/lib/eventSettings";
 import LogoutButton from "./LogoutButton";
 
 export default async function DashboardPage() {
@@ -28,6 +29,9 @@ export default async function DashboardPage() {
     redirect("/error");
   }
 
+  // Get event name
+  const eventName = await getEventName();
+
   // Generate QR code
   let qrCodeDataUrl: string;
   try {
@@ -53,6 +57,7 @@ export default async function DashboardPage() {
         <div className="bg-white rounded-lg shadow-xl p-8 mb-6">
           <div className="flex justify-between items-start mb-6">
             <div>
+              <p className="text-sm text-blue-600 font-medium mb-1">{eventName}</p>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 您的活動 QR Code
               </h1>

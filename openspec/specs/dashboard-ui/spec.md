@@ -13,7 +13,7 @@ The system SHALL display a personalized QR code on the dashboard page when the a
 
 #### Scenario: Event information display
 - **WHEN** dashboard renders with QR code
-- **THEN** system displays event name or identifier alongside QR code
+- **THEN** system displays event name from settings (Blob Storage) or default value「活動報到」
 
 ### Requirement: Dashboard must show user information
 The system SHALL display the authenticated user's email address and ticket number on the dashboard.
@@ -73,3 +73,25 @@ The system SHALL display appropriate loading indicators while generating QR code
 #### Scenario: Generation completion
 - **WHEN** QR code generation completes
 - **THEN** system hides loading indicator and displays QR code
+
+### Requirement: 登入頁面顯示活動名稱
+系統 SHALL 在登入頁面顯示當前活動名稱，讓使用者確認正在報到的活動。
+
+#### Scenario: 顯示活動名稱
+- **WHEN** 使用者進入登入頁面
+- **THEN** 系統從 /api/event 取得並顯示活動名稱
+
+#### Scenario: 未設定活動名稱
+- **WHEN** 活動名稱未設定
+- **THEN** 系統顯示預設值「活動報到」
+
+### Requirement: Dashboard 頁面顯示活動名稱
+系統 SHALL 在 Dashboard 頁面標題處顯示當前活動名稱。
+
+#### Scenario: 顯示活動名稱於標題
+- **WHEN** 使用者進入 Dashboard 頁面
+- **THEN** 系統在頁面標題處顯示活動名稱
+
+#### Scenario: 未設定活動名稱
+- **WHEN** 活動名稱未設定
+- **THEN** 系統顯示預設值「活動報到」
