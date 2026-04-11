@@ -1,10 +1,10 @@
-import { list, put } from '@vercel/blob';
+import { list, put } from "@vercel/blob";
 
 // Settings file name in Blob Storage
-const SETTINGS_BLOB_NAME = 'settings.json';
+const SETTINGS_BLOB_NAME = "settings.json";
 
 // Default event name when not configured
-const DEFAULT_EVENT_NAME = '活動報到';
+const DEFAULT_EVENT_NAME = "活動報到";
 
 /**
  * Event settings interface
@@ -20,9 +20,9 @@ export interface EventSettings {
  */
 export interface EventSettingsWithSource {
   eventId: string | null;
-  eventIdSource: 'blob' | 'env' | null;
+  eventIdSource: "blob" | "env" | null;
   eventName: string;
-  eventNameSource: 'blob' | 'default';
+  eventNameSource: "blob" | "default";
 }
 
 /**
@@ -32,7 +32,9 @@ export interface EventSettingsWithSource {
 async function readSettingsFromBlob(): Promise<EventSettings | null> {
   try {
     const { blobs } = await list();
-    const settingsBlob = blobs.find(blob => blob.pathname === SETTINGS_BLOB_NAME);
+    const settingsBlob = blobs.find(
+      (blob) => blob.pathname === SETTINGS_BLOB_NAME,
+    );
 
     if (!settingsBlob) {
       return null;
@@ -41,12 +43,14 @@ async function readSettingsFromBlob(): Promise<EventSettings | null> {
     const token = process.env.BLOB_READ_WRITE_TOKEN;
     const response = await fetch(settingsBlob.url, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!response.ok) {
-      console.error(`[Event Settings] Failed to fetch settings: ${response.status}`);
+      console.error(
+        `[Event Settings] Failed to fetch settings: ${response.status}`,
+      );
       return null;
     }
 
@@ -55,13 +59,13 @@ async function readSettingsFromBlob(): Promise<EventSettings | null> {
 
     // Validate required fields
     if (!settings.eventId) {
-      console.warn('[Event Settings] Settings file missing eventId');
+      console.warn("[Event Settings] Settings file missing eventId");
       return null;
     }
 
     return settings;
   } catch (error) {
-    console.error('[Event Settings] Error reading settings from Blob:', error);
+    console.error("[Event Settings] Error reading settings from Blob:", error);
     return null;
   }
 }
@@ -71,20 +75,26 @@ async function readSettingsFromBlob(): Promise<EventSettings | null> {
  * @param eventId - Event ID (required)
  * @param eventName - Event name (optional)
  */
-export async function saveEventSettings(eventId: string, eventName?: string): Promise<void> {
+export async function saveEventSettings(
+  eventId: string,
+  eventName?: string,
+): Promise<void> {
   const settings: EventSettings = {
     eventId,
-    eventName: eventName || '',
+    eventName: eventName || "",
     updatedAt: new Date().toISOString(),
   };
 
   await put(SETTINGS_BLOB_NAME, JSON.stringify(settings, null, 2), {
-    access: 'private',
-    contentType: 'application/json',
+    access: "private",
+    contentType: "application/json",
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 
-  console.log(`[Event Settings] Saved settings: eventId=${eventId}, eventName=${eventName || '(not set)'}`);
+  console.log(
+    `[Event Settings] Saved settings: eventId=${eventId}, eventName=${eventName || "(not set)"}`,
+  );
 }
 
 /**
@@ -129,23 +139,23 @@ export async function getEventSettingsWithSource(): Promise<EventSettingsWithSou
   const blobSettings = await readSettingsFromBlob();
 
   let eventId: string | null = null;
-  let eventIdSource: 'blob' | 'env' | null = null;
+  let eventIdSource: "blob" | "env" | null = null;
   let eventName: string = DEFAULT_EVENT_NAME;
-  let eventNameSource: 'blob' | 'default' = 'default';
+  let eventNameSource: "blob" | "default" = "default";
 
   // Determine eventId and its source
   if (blobSettings?.eventId) {
     eventId = blobSettings.eventId;
-    eventIdSource = 'blob';
+    eventIdSource = "blob";
   } else if (process.env.EVENT_ID) {
     eventId = process.env.EVENT_ID;
-    eventIdSource = 'env';
+    eventIdSource = "env";
   }
 
   // Determine eventName and its source
   if (blobSettings?.eventName) {
     eventName = blobSettings.eventName;
-    eventNameSource = 'blob';
+    eventNameSource = "blob";
   }
 
   return {
