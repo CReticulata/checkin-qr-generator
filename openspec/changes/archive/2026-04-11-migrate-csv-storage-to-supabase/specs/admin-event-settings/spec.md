@@ -1,4 +1,19 @@
-## ADDED Requirements
+## MODIFIED Requirements
+
+### Requirement: 活動設定持久化於 Supabase
+系統 SHALL 將活動設定（eventId、eventName）儲存於 Supabase Postgres 的 `event_settings` 單列表中，取代先前儲存於 Vercel Blob `settings.json` 的做法。
+
+#### Scenario: 儲存設定
+- **WHEN** 管理員更新活動設定
+- **THEN** 系統對 Supabase `event_settings` 表執行 `upsert({ id: 1, event_id, event_name, updated_at: now() })`
+
+#### Scenario: 讀取設定
+- **WHEN** 系統需要讀取活動設定
+- **THEN** 系統從 Supabase `event_settings` 表查詢唯一一列，取得 `event_id` 與 `event_name`
+
+#### Scenario: 表格為空時 fallback
+- **WHEN** `event_settings` 表為空
+- **THEN** `getEventId` 會 fallback 至 `process.env.EVENT_ID`，`getEventName` 會 fallback 至預設值「活動報到」
 
 ### Requirement: 管理員可在介面設定活動資訊
 系統 SHALL 提供管理員介面讓已授權的管理員設定活動識別碼（EVENT_ID）與活動名稱（eventName）。設定來源顯示改為 `Supabase` 或環境變數/預設值。
@@ -22,32 +37,6 @@
 #### Scenario: 活動名稱為選填
 - **WHEN** 管理員未填寫活動名稱
 - **THEN** 系統允許儲存（`event_name` 寫入 null 或空字串），前台將顯示預設名稱「活動報到」
-
-### Requirement: 活動設定持久化於 Supabase
-系統 SHALL 將活動設定（eventId、eventName）儲存於 Supabase Postgres 的 `event_settings` 單列表中，取代先前儲存於 Vercel Blob `settings.json` 的做法。
-
-#### Scenario: 儲存設定
-- **WHEN** 管理員更新活動設定
-- **THEN** 系統對 Supabase `event_settings` 表執行 `upsert({ id: 1, event_id, event_name, updated_at: now() })`
-
-#### Scenario: 讀取設定
-- **WHEN** 系統需要讀取活動設定
-- **THEN** 系統從 Supabase `event_settings` 表查詢唯一一列，取得 `event_id` 與 `event_name`
-
-#### Scenario: 表格為空時 fallback
-- **WHEN** `event_settings` 表為空
-- **THEN** `getEventId` 會 fallback 至 `process.env.EVENT_ID`，`getEventName` 會 fallback 至預設值「活動報到」
-
-### Requirement: 設定 API 需驗證管理員權限
-系統 SHALL 確保只有已授權的管理員能存取設定 API（/api/admin/settings）。
-
-#### Scenario: 未登入使用者存取 API
-- **WHEN** 未登入的使用者呼叫設定 API
-- **THEN** 系統回傳 401 Unauthorized 錯誤
-
-#### Scenario: 非管理員存取 API
-- **WHEN** 已登入但非管理員的使用者呼叫設定 API
-- **THEN** 系統回傳 403 Forbidden 錯誤
 
 ### Requirement: 提供公開 API 取得活動名稱
 系統 SHALL 提供公開 API（/api/event）讓前台取得活動名稱，資料來源改為 Supabase。
