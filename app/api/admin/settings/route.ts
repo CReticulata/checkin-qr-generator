@@ -80,15 +80,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if Blob token is configured
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('[Admin Settings] BLOB_READ_WRITE_TOKEN is not configured');
-      return NextResponse.json(
-        { error: '伺服器設定錯誤：未設定 Blob Storage Token' },
-        { status: 500 }
-      );
-    }
-
     // Save settings
     await saveEventSettings(eventId.trim(), eventName?.trim() || '');
 

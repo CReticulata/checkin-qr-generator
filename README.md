@@ -248,17 +248,19 @@ npm start
 
 1. 將程式碼推送至 GitHub 儲存庫
 2. 在 Vercel 儀表板匯入專案
-3. 啟用 Vercel Blob Storage：
-   - 前往專案設定 > Storage
-   - 點擊「Create Database」> 選擇「Blob」
-   - 建立完成後會自動新增 `BLOB_READ_WRITE_TOKEN` 環境變數
-4. 在 Vercel 專案設定中新增其他環境變數：
+3. 建立 Supabase 專案：
+   - 到 https://supabase.com 建立新專案
+   - 在 SQL Editor 執行 `supabase/migrations/0001_init.sql`
+   - 從 Project Settings > API 取得 `URL` 與 `service_role` key
+4. 在 Vercel 專案設定中新增環境變數：
    - `GOOGLE_CLIENT_ID`
    - `GOOGLE_CLIENT_SECRET`
    - `NEXTAUTH_SECRET`
    - `NEXTAUTH_URL`（設為正式網域）
    - `EVENT_ID`
    - `ADMIN_EMAILS`（管理員 email，多個用逗號分隔）
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
 5. 部署
 6. 前往 `/admin` 頁面上傳參與者 CSV 檔案
 

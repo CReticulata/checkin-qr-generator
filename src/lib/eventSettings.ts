@@ -1,161 +1,98 @@
-import { list, put } from "@vercel/blob";
+import { supabase } from "./supabase";
 
-// Settings file name in Blob Storage
-const SETTINGS_BLOB_NAME = "settings.json";
-
-// Default event name when not configured
 const DEFAULT_EVENT_NAME = "活動報到";
+const SETTINGS_ROW_ID = 1;
 
-/**
- * Event settings interface
- */
 export interface EventSettings {
   eventId: string;
   eventName: string;
   updatedAt: string;
 }
 
-/**
- * Event settings with source information
- */
 export interface EventSettingsWithSource {
   eventId: string | null;
-  eventIdSource: "blob" | "env" | null;
+  eventIdSource: "supabase" | "env" | null;
   eventName: string;
-  eventNameSource: "blob" | "default";
+  eventNameSource: "supabase" | "default";
 }
 
-/**
- * Read settings from Vercel Blob Storage
- * @returns EventSettings if found, null otherwise
- */
-async function readSettingsFromBlob(): Promise<EventSettings | null> {
-  try {
-    const { blobs } = await list();
-    const settingsBlob = blobs.find(
-      (blob) => blob.pathname === SETTINGS_BLOB_NAME,
-    );
+interface SettingsRow {
+  event_id: string | null;
+  event_name: string | null;
+  updated_at: string;
+}
 
-    if (!settingsBlob) {
-      return null;
-    }
+async function readSettingsFromSupabase(): Promise<SettingsRow | null> {
+  const { data, error } = await supabase
+    .from("event_settings")
+    .select("event_id, event_name, updated_at")
+    .eq("id", SETTINGS_ROW_ID)
+    .maybeSingle();
 
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    const response = await fetch(settingsBlob.url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      console.error(
-        `[Event Settings] Failed to fetch settings: ${response.status}`,
-      );
-      return null;
-    }
-
-    const content = await response.text();
-    const settings = JSON.parse(content) as EventSettings;
-
-    // Validate required fields
-    if (!settings.eventId) {
-      console.warn("[Event Settings] Settings file missing eventId");
-      return null;
-    }
-
-    return settings;
-  } catch (error) {
-    console.error("[Event Settings] Error reading settings from Blob:", error);
+  if (error) {
+    console.error("[Event Settings] Supabase read error:", error);
     return null;
   }
+
+  return (data as SettingsRow | null) ?? null;
 }
 
-/**
- * Write settings to Vercel Blob Storage
- * @param eventId - Event ID (required)
- * @param eventName - Event name (optional)
- */
 export async function saveEventSettings(
   eventId: string,
   eventName?: string,
 ): Promise<void> {
-  const settings: EventSettings = {
-    eventId,
-    eventName: eventName || "",
-    updatedAt: new Date().toISOString(),
-  };
-
-  await put(SETTINGS_BLOB_NAME, JSON.stringify(settings, null, 2), {
-    access: "private",
-    contentType: "application/json",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-  });
-
-  console.log(
-    `[Event Settings] Saved settings: eventId=${eventId}, eventName=${eventName || "(not set)"}`,
+  const { error } = await supabase.from("event_settings").upsert(
+    {
+      id: SETTINGS_ROW_ID,
+      event_id: eventId,
+      event_name: eventName || null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" },
   );
+
+  if (error) {
+    console.error("[Event Settings] Supabase upsert error:", error);
+    throw new Error(error.message);
+  }
 }
 
-/**
- * Get EVENT_ID with priority: Blob Storage → Environment Variable
- * @returns Event ID or null if not configured
- */
 export async function getEventId(): Promise<string | null> {
-  // First, try Blob Storage
-  const blobSettings = await readSettingsFromBlob();
-  if (blobSettings?.eventId) {
-    return blobSettings.eventId;
+  const settings = await readSettingsFromSupabase();
+  if (settings?.event_id) {
+    return settings.event_id;
   }
 
-  // Fallback to environment variable
-  const envEventId = process.env.EVENT_ID;
-  if (envEventId) {
-    return envEventId;
-  }
-
-  return null;
+  return process.env.EVENT_ID || null;
 }
 
-/**
- * Get event name with fallback to default
- * @returns Event name or default value '活動報到'
- */
 export async function getEventName(): Promise<string> {
-  const blobSettings = await readSettingsFromBlob();
-
-  if (blobSettings?.eventName) {
-    return blobSettings.eventName;
+  const settings = await readSettingsFromSupabase();
+  if (settings?.event_name) {
+    return settings.event_name;
   }
-
   return DEFAULT_EVENT_NAME;
 }
 
-/**
- * Get full event settings with source information
- * Used by admin panel to show where settings come from
- */
 export async function getEventSettingsWithSource(): Promise<EventSettingsWithSource> {
-  const blobSettings = await readSettingsFromBlob();
+  const settings = await readSettingsFromSupabase();
 
   let eventId: string | null = null;
-  let eventIdSource: "blob" | "env" | null = null;
+  let eventIdSource: "supabase" | "env" | null = null;
   let eventName: string = DEFAULT_EVENT_NAME;
-  let eventNameSource: "blob" | "default" = "default";
+  let eventNameSource: "supabase" | "default" = "default";
 
-  // Determine eventId and its source
-  if (blobSettings?.eventId) {
-    eventId = blobSettings.eventId;
-    eventIdSource = "blob";
+  if (settings?.event_id) {
+    eventId = settings.event_id;
+    eventIdSource = "supabase";
   } else if (process.env.EVENT_ID) {
     eventId = process.env.EVENT_ID;
     eventIdSource = "env";
   }
 
-  // Determine eventName and its source
-  if (blobSettings?.eventName) {
-    eventName = blobSettings.eventName;
-    eventNameSource = "blob";
+  if (settings?.event_name) {
+    eventName = settings.event_name;
+    eventNameSource = "supabase";
   }
 
   return {

@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 
 interface EventSettings {
   eventId: string | null;
-  eventIdSource: 'blob' | 'env' | null;
+  eventIdSource: 'supabase' | 'env' | null;
   eventName: string;
-  eventNameSource: 'blob' | 'default';
+  eventNameSource: 'supabase' | 'default';
 }
 
 export default function EventSettingsForm() {
@@ -76,9 +76,9 @@ export default function EventSettingsForm() {
         // Update settings state to reflect new source
         setSettings({
           eventId: eventId.trim(),
-          eventIdSource: 'blob',
+          eventIdSource: 'supabase',
           eventName: eventName.trim() || '活動報到',
-          eventNameSource: eventName.trim() ? 'blob' : 'default',
+          eventNameSource: eventName.trim() ? 'supabase' : 'default',
         });
       } else {
         setSaveResult({
@@ -98,8 +98,8 @@ export default function EventSettingsForm() {
 
   const getSourceLabel = (source: string | null): string => {
     switch (source) {
-      case 'blob':
-        return 'Blob Storage';
+      case 'supabase':
+        return 'Supabase';
       case 'env':
         return '環境變數';
       case 'default':
@@ -111,7 +111,7 @@ export default function EventSettingsForm() {
 
   const getSourceColor = (source: string | null): string => {
     switch (source) {
-      case 'blob':
+      case 'supabase':
         return 'text-green-600 bg-green-50';
       case 'env':
         return 'text-blue-600 bg-blue-50';
